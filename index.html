@@ -534,7 +534,7 @@
 <script>
   // 🔹 CONFIGURATION FIREBASE
   const firebaseConfig = {
-    apiKey: "AIzaSyAy9gymOKJW0LBmOBYSSRU8swsuBUtSXKU",
+    apiKey: "",
     authDomain: "site-de-changement.firebaseapp.com",
     projectId: "site-de-changement",
     storageBucket: "site-de-changement.appspot.com",
@@ -549,16 +549,18 @@
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     
-    // Vérifier la connexion
+    // Vérifier la connexion (persistance optionnelle - compatible plan gratuit)
     db.enablePersistence().catch(err => {
       if (err.code == 'failed-precondition') {
         console.warn('Firestore: Persistance activée sur plusieurs onglets');
       } else if (err.code == 'unimplemented') {
         console.warn('Firestore: Persistance non supportée par ce navigateur');
       }
+      // La persistance est optionnelle, on continue même si elle échoue
     });
     
     console.log('✅ Firebase initialisé avec succès');
+    console.log('📋 Plan: Spark (Gratuit) - Compatible ✅');
   } catch (error) {
     console.error('❌ Erreur d\'initialisation Firebase:', error);
     alert('Erreur de connexion à Firebase. Vérifiez votre configuration.');
