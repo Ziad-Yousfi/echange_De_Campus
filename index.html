@@ -13,6 +13,9 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Configuration Firebase (chargée depuis config.js - fichier non commité) -->
+  <script src="config.js"></script>
 
   <style>
     * {
@@ -270,6 +273,17 @@
       opacity: 0.5;
     }
 
+    select option:disabled {
+      opacity: 0.5;
+      color: #999;
+      font-style: italic;
+    }
+
+    select option {
+      background: var(--card-bg);
+      color: var(--text-color);
+    }
+
     button {
       padding: 16px 32px;
       background: var(--gradient-1);
@@ -442,6 +456,64 @@
       to { transform: rotate(360deg); }
     }
 
+    /* Modale de suppression */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 35px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: var(--shadow-hover);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      animation: slideUp 0.3s ease;
+      position: relative;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-close {
+      transition: all 0.3s ease;
+    }
+
+    .modal-close:hover {
+      opacity: 1 !important;
+      transform: rotate(90deg);
+    }
+
+    .delete-btn:hover {
+      opacity: 1 !important;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       h1 {
@@ -489,6 +561,35 @@
     <span id="notificationText">Annonce envoyée avec succès!</span>
   </div>
 
+  <!-- Modale de confirmation de suppression -->
+  <div class="modal" id="deleteModal" style="display: none;">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: var(--accent);">🗑️ Supprimer l'annonce</h2>
+        <button class="modal-close" id="closeModal" style="background: transparent; border: none; font-size: 24px; cursor: pointer; color: var(--text-color); opacity: 0.7;">&times;</button>
+      </div>
+      <p style="margin-bottom: 20px; color: var(--text-color); opacity: 0.9;">
+        Pour confirmer la suppression de votre annonce, veuillez entrer votre nom et votre numéro de téléphone :
+      </p>
+      <div class="form-group">
+        <label for="confirmNom">Nom et prénom :</label>
+        <input type="text" id="confirmNom" placeholder="Votre nom complet" required>
+      </div>
+      <div class="form-group">
+        <label for="confirmPhone">Numéro de téléphone :</label>
+        <input type="tel" id="confirmPhone" placeholder="Votre numéro de téléphone" pattern="[0-9]{10}" required>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button type="button" id="confirmDelete" style="flex: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+          <span>🗑️ Confirmer la suppression</span>
+        </button>
+        <button type="button" id="cancelDelete" style="flex: 1; background: var(--card-bg); color: var(--text-color); border: 2px solid var(--accent);">
+          <span>Annuler</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     <h1>🔄 Échange de Campus</h1>
     <p class="subtitle">Trouvez votre partenaire d'échange en quelques clics</p>
@@ -528,20 +629,44 @@
       </button>
     </form>
 
+    <!-- Filtres et recherche -->
+    <div class="card" id="filtersCard" style="margin-bottom: 30px;">
+      <h2 style="margin-bottom: 20px; font-size: 1.5rem; color: var(--accent);">🔍 Filtres de recherche</h2>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: end;">
+        <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+          <label for="filterCampus">Rechercher des personnes qui ont ce campus actuel :</label>
+          <select id="filterCampus" style="margin-bottom: 0;">
+            <option value="">-- Tous les campus --</option>
+            <option value="Centre 1">Centre 1</option>
+            <option value="Centre 2">Centre 2</option>
+            <option value="Joulan">Joulan</option>
+            <option value="Agdal 1">Agdal 1</option>
+            <option value="Agdal 2">Agdal 2</option>
+          </select>
+        </div>
+        <button type="button" id="clearFilter" style="padding: 16px 24px; background: var(--card-bg); color: var(--text-color); border: 2px solid var(--accent); width: auto; margin-top: 0;">
+          <span>🔄 Réinitialiser</span>
+        </button>
+      </div>
+      <p id="filterInfo" style="margin-top: 15px; padding: 12px; background: var(--accent-light); border-radius: 8px; font-size: 0.9rem; opacity: 0.8; display: none;">
+        <strong>💡 Astuce :</strong> Sélectionnez un campus pour voir les personnes qui souhaitent échanger depuis ce campus.
+      </p>
+    </div>
+
     <div id="annoncesContainer"></div>
   </div>
 
 <script>
   // 🔹 CONFIGURATION FIREBASE
-  const firebaseConfig = {
-    apiKey: "",
-    authDomain: "site-de-changement.firebaseapp.com",
-    projectId: "site-de-changement",
-    storageBucket: "site-de-changement.appspot.com",
-    messagingSenderId: "1098798831039",
-    appId: "1:1098798831039:web:aadd9d4f61b2ca0a57bd0a",
-    measurementId: "G-KJZ8PXHGMN"
-  };
+  // La configuration est chargée depuis config.js (fichier non commité sur GitHub)
+  // ⚠️ IMPORTANT : Même si l'API key est cachée du repo, elle sera visible côté client
+  // La VRAIE sécurité se fait via les RÈGLES FIRESTORE dans la console Firebase
+  
+  // Vérifier que la configuration est chargée
+  if (typeof firebaseConfig === 'undefined') {
+    console.error('❌ Erreur: config.js non trouvé!');
+    alert('Erreur de configuration. Assurez-vous que config.js existe avec vos clés Firebase.');
+  }
 
   // Initialisation Firebase
   let db;
@@ -574,6 +699,15 @@
   const submitText = document.getElementById('submitText');
   const submitLoader = document.getElementById('submitLoader');
   const particlesContainer = document.getElementById('particles');
+  const currentCampusSelect = document.getElementById('currentCampus');
+  const desiredCampusSelect = document.getElementById('desiredCampus');
+  const filterCampusSelect = document.getElementById('filterCampus');
+  const clearFilterBtn = document.getElementById('clearFilter');
+  const filterInfo = document.getElementById('filterInfo');
+  
+  // Variable pour stocker toutes les annonces et le filtre actuel
+  let allAnnonces = [];
+  let currentFilter = '';
 
   // Création des particules animées
   function createParticles() {
@@ -616,6 +750,239 @@
     const isDark = document.body.getAttribute('data-theme') === 'dark';
     themeToggle.innerHTML = `<span>${isDark ? '☀️' : '🌙'}</span><span>${isDark ? 'Clair' : 'Sombre'}</span>`;
   }
+
+  // Fonction pour désactiver le campus actuel dans le select "campus souhaité"
+  function updateDesiredCampusOptions() {
+    const selectedCampus = currentCampusSelect.value;
+    const allOptions = desiredCampusSelect.querySelectorAll('option');
+    
+    allOptions.forEach(option => {
+      if (option.value === '') {
+        // Garder l'option vide activée
+        option.disabled = false;
+        option.style.opacity = '1';
+      } else if (option.value === selectedCampus) {
+        // Désactiver le campus actuel
+        option.disabled = true;
+        option.style.opacity = '0.5';
+      } else {
+        // Réactiver les autres options
+        option.disabled = false;
+        option.style.opacity = '1';
+      }
+    });
+    
+    // Si le campus souhaité actuel est le même que le campus actuel, le réinitialiser
+    if (desiredCampusSelect.value === selectedCampus) {
+      desiredCampusSelect.value = '';
+    }
+  }
+
+  // Écouter les changements du campus actuel
+  currentCampusSelect.addEventListener('change', updateDesiredCampusOptions);
+  
+  // Initialiser au chargement
+  updateDesiredCampusOptions();
+
+  // Fonction pour afficher les annonces (avec filtre)
+  function displayAnnonces(annonces) {
+    annoncesContainer.innerHTML = '';
+    
+    if (annonces.length === 0) {
+      annoncesContainer.innerHTML = `
+        <div class="card" style="text-align: center; opacity: 0.7;">
+          <p>${currentFilter ? 'Aucune annonce ne correspond à votre recherche. 🔍' : 'Aucune annonce pour le moment. Soyez le premier à publier! 🚀'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    annonces.forEach((item, index) => {
+      const a = item.data;
+      const div = document.createElement('div');
+      div.classList.add('annonce');
+      div.style.animationDelay = `${index * 0.1}s`;
+      
+      // Formatage de la date si disponible
+      let dateStr = '';
+      if (a.timestamp && a.timestamp.toDate) {
+        const date = a.timestamp.toDate();
+        const now = new Date();
+        const diff = now - date;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        
+        if (minutes < 1) dateStr = 'Il y a quelques secondes';
+        else if (minutes < 60) dateStr = `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
+        else if (hours < 24) dateStr = `Il y a ${hours} heure${hours > 1 ? 's' : ''}`;
+        else dateStr = `Il y a ${days} jour${days > 1 ? 's' : ''}`;
+      }
+      
+      // Badge pour les correspondances parfaites
+      const isMatch = currentFilter && a.currentCampus === currentFilter;
+      const matchBadge = isMatch ? '<span style="background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; margin-left: 10px;">✨ Match parfait</span>' : '';
+      
+      div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+          <strong>${a.nom}${matchBadge}</strong>
+          <button class="delete-btn" data-annonce-id="${item.id}" data-annonce-nom="${a.nom}" data-annonce-phone="${a.phone}" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 5px 10px; border-radius: 6px; font-size: 0.9rem; transition: all 0.3s; opacity: 0.7;" onmouseover="this.style.opacity='1'; this.style.background='rgba(239, 68, 68, 0.1)';" onmouseout="this.style.opacity='0.7'; this.style.background='transparent';" title="Supprimer cette annonce">
+            🗑️ Supprimer
+          </button>
+        </div>
+        <p style="margin: 10px 0; line-height: 1.6;">
+          Souhaite changer de <em>${a.currentCampus}</em> vers <em>${a.desiredCampus}</em>
+        </p>
+        <div class="contact">
+          <span>📱</span>
+          <span>${a.phone}</span>
+          ${dateStr ? `<span style="margin-left: auto; opacity: 0.6; font-size: 0.85rem;">${dateStr}</span>` : ''}
+        </div>
+      `;
+      annoncesContainer.appendChild(div);
+      
+      // Ajouter l'événement de suppression
+      const deleteBtn = div.querySelector('.delete-btn');
+      deleteBtn.addEventListener('click', () => showDeleteModal(item.id, a.nom, a.phone));
+    });
+  }
+
+  // Fonction de filtrage
+  function filterAnnonces() {
+    currentFilter = filterCampusSelect.value;
+    
+    if (currentFilter === '') {
+      // Afficher toutes les annonces
+      displayAnnonces(allAnnonces);
+      filterInfo.style.display = 'none';
+    } else {
+      // Filtrer : afficher les personnes qui ont ce campus comme campus actuel
+      const filtered = allAnnonces.filter(item => {
+        return item.data.currentCampus === currentFilter;
+      });
+      
+      displayAnnonces(filtered);
+      filterInfo.style.display = 'block';
+      filterInfo.innerHTML = `
+        <strong>🔍 Filtre actif :</strong> Affichage des personnes qui ont <strong>${currentFilter}</strong> comme campus actuel.
+        <br>Si vous souhaitez aller à <strong>${currentFilter}</strong>, ces personnes souhaitent peut-être partir de là ! 💡
+      `;
+    }
+  }
+
+  // Écouter les changements du filtre
+  filterCampusSelect.addEventListener('change', filterAnnonces);
+  
+  // Bouton pour réinitialiser le filtre
+  clearFilterBtn.addEventListener('click', () => {
+    filterCampusSelect.value = '';
+    filterAnnonces();
+  });
+
+  // Variables pour la suppression
+  let currentDeleteId = null;
+  let currentDeleteNom = '';
+  let currentDeletePhone = '';
+  const deleteModal = document.getElementById('deleteModal');
+  const confirmNomInput = document.getElementById('confirmNom');
+  const confirmPhoneInput = document.getElementById('confirmPhone');
+  const confirmDeleteBtn = document.getElementById('confirmDelete');
+  const cancelDeleteBtn = document.getElementById('cancelDelete');
+  const closeModalBtn = document.getElementById('closeModal');
+
+  // Fonction pour afficher la modale de suppression
+  function showDeleteModal(annonceId, nom, phone) {
+    currentDeleteId = annonceId;
+    currentDeleteNom = nom;
+    currentDeletePhone = phone;
+    deleteModal.style.display = 'flex';
+    confirmNomInput.value = '';
+    confirmPhoneInput.value = '';
+    confirmNomInput.focus();
+  }
+
+  // Fonction pour fermer la modale
+  function closeDeleteModal() {
+    deleteModal.style.display = 'none';
+    currentDeleteId = null;
+    confirmNomInput.value = '';
+    confirmPhoneInput.value = '';
+  }
+
+  // Événements pour fermer la modale
+  closeModalBtn.addEventListener('click', closeDeleteModal);
+  cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+  
+  // Fermer la modale en cliquant à l'extérieur
+  deleteModal.addEventListener('click', (e) => {
+    if (e.target === deleteModal) {
+      closeDeleteModal();
+    }
+  });
+
+  // Fonction pour supprimer l'annonce
+  async function deleteAnnonce() {
+    const enteredNom = confirmNomInput.value.trim();
+    const enteredPhone = confirmPhoneInput.value.trim();
+
+    // Vérifier que les champs sont remplis
+    if (!enteredNom || !enteredPhone) {
+      showNotification('Veuillez remplir tous les champs', 'error');
+      return;
+    }
+
+    // Vérifier le format du téléphone
+    if (enteredPhone.length !== 10 || !/^\d+$/.test(enteredPhone)) {
+      showNotification('Le numéro de téléphone doit contenir 10 chiffres', 'error');
+      return;
+    }
+
+    // Vérifier que les informations correspondent (insensible à la casse pour le nom)
+    const nomMatch = enteredNom.toLowerCase().trim() === currentDeleteNom.toLowerCase().trim();
+    const phoneMatch = enteredPhone.trim() === currentDeletePhone.trim();
+
+    if (!nomMatch || !phoneMatch) {
+      showNotification('Les informations ne correspondent pas à cette annonce', 'error');
+      confirmNomInput.style.borderColor = '#ef4444';
+      confirmPhoneInput.style.borderColor = '#ef4444';
+      setTimeout(() => {
+        confirmNomInput.style.borderColor = '';
+        confirmPhoneInput.style.borderColor = '';
+      }, 2000);
+      return;
+    }
+
+    // Confirmer la suppression
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ? Cette action est irréversible.')) {
+      return;
+    }
+
+    try {
+      if (!db) {
+        throw new Error('Firebase n\'est pas initialisé');
+      }
+
+      await db.collection("annonces").doc(currentDeleteId).delete();
+      
+      showNotification('Annonce supprimée avec succès! ✅', 'success');
+      closeDeleteModal();
+      
+      console.log('✅ Annonce supprimée:', currentDeleteId);
+    } catch (error) {
+      console.error('❌ Erreur lors de la suppression:', error);
+      showNotification('Erreur lors de la suppression. Veuillez réessayer.', 'error');
+    }
+  }
+
+  // Événement pour confirmer la suppression
+  confirmDeleteBtn.addEventListener('click', deleteAnnonce);
+
+  // Permettre la suppression avec Enter
+  confirmPhoneInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      deleteAnnonce();
+    }
+  });
 
   // Fonction de notification
   function showNotification(message, type = 'success') {
@@ -712,52 +1079,18 @@
       .onSnapshot(
         snapshot => {
           console.log('📥 Données reçues:', snapshot.size, 'documents');
-          annoncesContainer.innerHTML = '';
           
-          if (snapshot.empty) {
-            annoncesContainer.innerHTML = `
-              <div class="card" style="text-align: center; opacity: 0.7;">
-                <p>Aucune annonce pour le moment. Soyez le premier à publier! 🚀</p>
-              </div>
-            `;
-            return;
-          }
-
-          snapshot.forEach((doc, index) => {
-            const a = doc.data();
-            const div = document.createElement('div');
-            div.classList.add('annonce');
-            div.style.animationDelay = `${index * 0.1}s`;
-            
-            // Formatage de la date si disponible
-            let dateStr = '';
-            if (a.timestamp && a.timestamp.toDate) {
-              const date = a.timestamp.toDate();
-              const now = new Date();
-              const diff = now - date;
-              const minutes = Math.floor(diff / 60000);
-              const hours = Math.floor(diff / 3600000);
-              const days = Math.floor(diff / 86400000);
-              
-              if (minutes < 1) dateStr = 'Il y a quelques secondes';
-              else if (minutes < 60) dateStr = `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
-              else if (hours < 24) dateStr = `Il y a ${hours} heure${hours > 1 ? 's' : ''}`;
-              else dateStr = `Il y a ${days} jour${days > 1 ? 's' : ''}`;
-            }
-            
-            div.innerHTML = `
-              <strong>${a.nom}</strong>
-              <p style="margin: 10px 0; line-height: 1.6;">
-                Souhaite changer de <em>${a.currentCampus}</em> vers <em>${a.desiredCampus}</em>
-              </p>
-              <div class="contact">
-                <span>📱</span>
-                <span>${a.phone}</span>
-                ${dateStr ? `<span style="margin-left: auto; opacity: 0.6; font-size: 0.85rem;">${dateStr}</span>` : ''}
-              </div>
-            `;
-            annoncesContainer.appendChild(div);
+          // Stocker toutes les annonces
+          allAnnonces = [];
+          snapshot.forEach(doc => {
+            allAnnonces.push({
+              id: doc.id,
+              data: doc.data()
+            });
           });
+          
+          // Appliquer le filtre actuel (ou afficher toutes si pas de filtre)
+          filterAnnonces();
         },
         error => {
           console.error('❌ Erreur Firestore:', error);
