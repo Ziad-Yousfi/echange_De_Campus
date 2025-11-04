@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /annonces/{docId} {
+      // Lecture publique (tout le monde peut lire)
+      allow read: if true;
+
+      // Création: seuls les utilisateurs authentifiés peuvent créer
+      // On vérifie également la présence et le type des champs principaux
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasAll(['nom','currentCampus','desiredCampus','phone','ownerUid','timestamp'])
+                    && request.resource.data.nom is string
+                    && request.resource.data.nom.size() > 0
+                    && request.resource.data.nom.size() <= 100
+                    && request.resource.data.currentCampus is string
+                    && request.resource.data.desiredCampus is string
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() >= 8
+                    && request.resource.data.phone.size() <= 15
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.timestamp == request.time;
+
+      // Update / delete: seulement le propriétaire (ownerUid)
+      allow update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+  }
+}

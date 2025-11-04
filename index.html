@@ -13,6 +13,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   
   <!-- Configuration Firebase avec fallback automatique -->
   <script>
@@ -713,6 +714,19 @@
   try {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+
+    // --- Auth: sign in anonymously if no user (keeps apiKey public but requires auth for writes) ---
+    if (firebase.auth) {
+      firebase.auth().onAuthStateChanged(user => {
+        if (!user) {
+          firebase.auth().signInAnonymously().catch(err => {
+            console.warn('Auth anonymous failed', err);
+          });
+        } else {
+          console.log('✅ Firebase Auth user:', user.uid);
+        }
+      });
+    }
     
     // Vérifier la connexion (persistance optionnelle - compatible plan gratuit)
     db.enablePersistence().catch(err => {
@@ -1069,11 +1083,22 @@
 
       console.log('📤 Envoi des données...', { nom, currentCampus, desiredCampus, phone });
       
+      // Ensure user is authenticated (anonymous auth) and attach ownerUid to the document
+      if (firebase.auth && !firebase.auth().currentUser) {
+        try {
+          await firebase.auth().signInAnonymously();
+        } catch (err) {
+          console.warn('Sign-in anonymous failed before write', err);
+        }
+      }
+      const ownerUid = (firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser.uid : null;
+
       const docRef = await db.collection("annonces").add({
         nom,
         currentCampus,
         desiredCampus,
         phone,
+        ownerUid,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
       
