@@ -15,7 +15,24 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   
   <!-- Configuration Firebase (chargée depuis config.js - fichier non commité) -->
-  <script src="config.js"></script>
+  <script src="config.js" onerror="loadFirebaseConfigFallback()"></script>
+  
+  <!-- Fallback si config.js n'existe pas (pour GitHub Pages) -->
+  <script>
+    function loadFirebaseConfigFallback() {
+      console.warn('⚠️ config.js non trouvé, utilisation de la configuration par défaut');
+      // ⚠️ Pour GitHub Pages: Remplacez ces valeurs par vos vraies clés Firebase
+      window.firebaseConfig = {
+        apiKey: "AIzaSyAy9gymOKJW0LBmOBYSSRU8swsuBUtSXKU",
+        authDomain: "site-de-changement.firebaseapp.com",
+        projectId: "site-de-changement",
+        storageBucket: "site-de-changement.appspot.com",
+        messagingSenderId: "1098798831039",
+        appId: "1:1098798831039:web:aadd9d4f61b2ca0a57bd0a",
+        measurementId: "G-KJZ8PXHGMN"
+      };
+    }
+  </script>
 
   <style>
     * {
@@ -664,8 +681,14 @@
   
   // Vérifier que la configuration est chargée
   if (typeof firebaseConfig === 'undefined') {
-    console.error('❌ Erreur: config.js non trouvé!');
-    alert('Erreur de configuration. Assurez-vous que config.js existe avec vos clés Firebase.');
+    // Essayer le fallback (pour GitHub Pages)
+    if (typeof window.firebaseConfig !== 'undefined') {
+      firebaseConfig = window.firebaseConfig;
+      console.log('✅ Configuration chargée depuis le fallback (GitHub Pages)');
+    } else {
+      console.error('❌ Erreur: config.js non trouvé et pas de fallback!');
+      alert('Erreur de configuration. Assurez-vous que config.js existe avec vos clés Firebase.');
+    }
   }
 
   // Initialisation Firebase
