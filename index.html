@@ -285,6 +285,14 @@
       font-family: inherit;
     }
 
+    small {
+      display: block;
+      margin-top: 5px;
+      opacity: 0.7;
+      font-size: 0.85rem;
+      color: var(--text-color);
+    }
+
     [data-theme="dark"] input,
     [data-theme="dark"] select {
       background: rgba(0, 0, 0, 0.2);
@@ -599,15 +607,11 @@
         <button class="modal-close" id="closeModal" style="background: transparent; border: none; font-size: 24px; cursor: pointer; color: var(--text-color); opacity: 0.7;">&times;</button>
       </div>
       <p style="margin-bottom: 20px; color: var(--text-color); opacity: 0.9;">
-        Pour confirmer la suppression de votre annonce, veuillez entrer votre nom et votre numéro de téléphone :
+        Pour confirmer la suppression de votre annonce, veuillez entrer le code de sécurité que vous avez défini lors de la création :
       </p>
       <div class="form-group">
-        <label for="confirmNom">Nom et prénom :</label>
-        <input type="text" id="confirmNom" placeholder="Votre nom complet" required>
-      </div>
-      <div class="form-group">
-        <label for="confirmPhone">Numéro de téléphone :</label>
-        <input type="tel" id="confirmPhone" placeholder="Votre numéro de téléphone" pattern="[0-9]{10}" required>
+        <label for="confirmCode">Code de sécurité :</label>
+        <input type="text" id="confirmCode" placeholder="Entrez le code de l'annonce" required>
       </div>
       <div style="display: flex; gap: 10px; margin-top: 20px;">
         <button type="button" id="confirmDelete" style="flex: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
@@ -652,6 +656,11 @@
       </div>
       <div class="form-group">
         <input type="tel" id="phone" placeholder="📱 Numéro de téléphone" pattern="[0-9]{10}" required>
+      </div>
+      <div class="form-group">
+        <label for="code">🔐 Code de sécurité (nécessaire pour supprimer l'annonce) :</label>
+        <input type="text" id="code" placeholder="Choisissez un code (ex: 1234)" required minlength="3" maxlength="20">
+        <small style="display: block; margin-top: 5px; opacity: 0.7; font-size: 0.85rem;">⚠️ Important : Notez bien ce code, vous en aurez besoin pour supprimer votre annonce.</small>
       </div>
       <button type="submit">
         <span id="submitText">Envoyer l'annonce</span>
@@ -880,10 +889,12 @@
       const matchBadge = isMatch ? '<span style="background: var(--accent); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; margin-left: 10px;">✨ Match parfait</span>' : '';
       
       div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-          <strong>${a.nom}${matchBadge}</strong>
-          <button class="delete-btn" data-annonce-id="${item.id}" data-annonce-nom="${a.nom}" data-annonce-phone="${a.phone}" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 5px 10px; border-radius: 6px; font-size: 0.9rem; transition: all 0.3s; opacity: 0.7;" onmouseover="this.style.opacity='1'; this.style.background='rgba(239, 68, 68, 0.1)';" onmouseout="this.style.opacity='0.7'; this.style.background='transparent';" title="Supprimer cette annonce">
-            🗑️ Supprimer
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 10px;">
+          <div style="flex: 1;">
+            <strong>${a.nom}${matchBadge}</strong>
+          </div>
+          <button class="delete-btn" data-annonce-id="${item.id}" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; transition: all 0.3s; opacity: 0.6; flex-shrink: 0;" onmouseover="this.style.opacity='1'; this.style.background='rgba(239, 68, 68, 0.15)'; this.style.transform='scale(1.1)';" onmouseout="this.style.opacity='0.6'; this.style.background='transparent'; this.style.transform='scale(1)';" title="Supprimer cette annonce">
+            🗑️
           </button>
         </div>
         <p style="margin: 10px 0; line-height: 1.6;">
@@ -899,7 +910,7 @@
       
       // Ajouter l'événement de suppression
       const deleteBtn = div.querySelector('.delete-btn');
-      deleteBtn.addEventListener('click', () => showDeleteModal(item.id, a.nom, a.phone));
+      deleteBtn.addEventListener('click', () => showDeleteModal(item.id));
     });
   }
 
@@ -937,32 +948,25 @@
 
   // Variables pour la suppression
   let currentDeleteId = null;
-  let currentDeleteNom = '';
-  let currentDeletePhone = '';
   const deleteModal = document.getElementById('deleteModal');
-  const confirmNomInput = document.getElementById('confirmNom');
-  const confirmPhoneInput = document.getElementById('confirmPhone');
+  const confirmCodeInput = document.getElementById('confirmCode');
   const confirmDeleteBtn = document.getElementById('confirmDelete');
   const cancelDeleteBtn = document.getElementById('cancelDelete');
   const closeModalBtn = document.getElementById('closeModal');
 
   // Fonction pour afficher la modale de suppression
-  function showDeleteModal(annonceId, nom, phone) {
+  function showDeleteModal(annonceId) {
     currentDeleteId = annonceId;
-    currentDeleteNom = nom;
-    currentDeletePhone = phone;
     deleteModal.style.display = 'flex';
-    confirmNomInput.value = '';
-    confirmPhoneInput.value = '';
-    confirmNomInput.focus();
+    confirmCodeInput.value = '';
+    confirmCodeInput.focus();
   }
 
   // Fonction pour fermer la modale
   function closeDeleteModal() {
     deleteModal.style.display = 'none';
     currentDeleteId = null;
-    confirmNomInput.value = '';
-    confirmPhoneInput.value = '';
+    confirmCodeInput.value = '';
   }
 
   // Événements pour fermer la modale
@@ -978,44 +982,46 @@
 
   // Fonction pour supprimer l'annonce
   async function deleteAnnonce() {
-    const enteredNom = confirmNomInput.value.trim();
-    const enteredPhone = confirmPhoneInput.value.trim();
+    const enteredCode = confirmCodeInput.value.trim();
 
-    // Vérifier que les champs sont remplis
-    if (!enteredNom || !enteredPhone) {
-      showNotification('Veuillez remplir tous les champs', 'error');
-      return;
-    }
-
-    // Vérifier le format du téléphone
-    if (enteredPhone.length !== 10 || !/^\d+$/.test(enteredPhone)) {
-      showNotification('Le numéro de téléphone doit contenir 10 chiffres', 'error');
-      return;
-    }
-
-    // Vérifier que les informations correspondent (insensible à la casse pour le nom)
-    const nomMatch = enteredNom.toLowerCase().trim() === currentDeleteNom.toLowerCase().trim();
-    const phoneMatch = enteredPhone.trim() === currentDeletePhone.trim();
-
-    if (!nomMatch || !phoneMatch) {
-      showNotification('Les informations ne correspondent pas à cette annonce', 'error');
-      confirmNomInput.style.borderColor = '#ef4444';
-      confirmPhoneInput.style.borderColor = '#ef4444';
-      setTimeout(() => {
-        confirmNomInput.style.borderColor = '';
-        confirmPhoneInput.style.borderColor = '';
-      }, 2000);
-      return;
-    }
-
-    // Confirmer la suppression
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ? Cette action est irréversible.')) {
+    // Vérifier que le champ est rempli
+    if (!enteredCode) {
+      showNotification('Veuillez entrer le code de sécurité', 'error');
       return;
     }
 
     try {
       if (!db) {
         throw new Error('Firebase n\'est pas initialisé');
+      }
+
+      // Récupérer l'annonce depuis Firestore pour vérifier le code
+      const annonceDoc = await db.collection("annonces").doc(currentDeleteId).get();
+      
+      if (!annonceDoc.exists) {
+        showNotification('Cette annonce n\'existe plus', 'error');
+        closeDeleteModal();
+        return;
+      }
+
+      const annonceData = annonceDoc.data();
+      const storedCode = annonceData.code || '';
+
+      // Vérifier que le code correspond (insensible à la casse)
+      const codeMatch = enteredCode.toLowerCase().trim() === storedCode.toLowerCase().trim();
+
+      if (!codeMatch) {
+        showNotification('Le code de sécurité est incorrect', 'error');
+        confirmCodeInput.style.borderColor = '#ef4444';
+        setTimeout(() => {
+          confirmCodeInput.style.borderColor = '';
+        }, 2000);
+        return;
+      }
+
+      // Confirmer la suppression
+      if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ? Cette action est irréversible.')) {
+        return;
       }
 
       await db.collection("annonces").doc(currentDeleteId).delete();
@@ -1034,7 +1040,7 @@
   confirmDeleteBtn.addEventListener('click', deleteAnnonce);
 
   // Permettre la suppression avec Enter
-  confirmPhoneInput.addEventListener('keypress', (e) => {
+  confirmCodeInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       deleteAnnonce();
     }
@@ -1062,14 +1068,20 @@
     const currentCampus = document.getElementById('currentCampus').value;
     const desiredCampus = document.getElementById('desiredCampus').value;
     const phone = document.getElementById('phone').value.trim();
+    const code = document.getElementById('code').value.trim();
     
-    if (!nom || !currentCampus || !desiredCampus || !phone) {
+    if (!nom || !currentCampus || !desiredCampus || !phone || !code) {
       showNotification('Veuillez remplir tous les champs', 'error');
       return;
     }
 
     if (phone.length !== 10 || !/^\d+$/.test(phone)) {
       showNotification('Le numéro de téléphone doit contenir 10 chiffres', 'error');
+      return;
+    }
+
+    if (code.length < 3) {
+      showNotification('Le code de sécurité doit contenir au moins 3 caractères', 'error');
       return;
     }
 
@@ -1083,7 +1095,7 @@
         throw new Error('Firebase n\'est pas initialisé');
       }
 
-      console.log('📤 Envoi des données...', { nom, currentCampus, desiredCampus, phone });
+      console.log('📤 Envoi des données...', { nom, currentCampus, desiredCampus, phone, code: '***' });
       
       // Ensure user is authenticated (anonymous auth) and attach ownerUid to the document
       if (firebase.auth && !firebase.auth().currentUser) {
@@ -1100,6 +1112,7 @@
         currentCampus,
         desiredCampus,
         phone,
+        code,
         ownerUid,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
