@@ -1,51 +1,51 @@
-# Échange de Campus — Par Ziad Yousfi
+# Campus Exchange — by Ziad Yousfi
 
-**Échange de Campus** est une application web légère qui permet aux étudiants de publier et trouver des annonces d'échange de campus. L'interface est statique (HTML/CSS/JS) et utilise Firebase Firestore pour la persistance et Firebase Auth (anonyme) pour identifier les créateurs d'annonces.
-
----
-
-## Fonctionnalités
-
-- Publier une annonce : nom, campus actuel, campus souhaité, téléphone
-- Lecture en temps réel des annonces
-- Filtrage par campus
-- Suppression d'une annonce par son propriétaire
-- Authentification anonyme côté client (UID stocké dans `ownerUid`)
-- Règles Firestore incluses pour sécuriser les écritures
+**Campus Exchange** is a lightweight web app that helps students post and browse campus exchange listings. The UI is static (HTML/CSS/JS) and uses **Firebase Firestore** to display listings in real time.
 
 ---
 
-## Structure du projet
+## Features
 
-- `site/` : sources du site (HTML/CSS/JS)
-  - `index.html` : page principale
-  - `config.example.js` : exemple de configuration Firebase
-  - `config.js` : (optionnel, non commité) configuration privée
-  - `firestore.rules` : règles Firestore recommandées
-
----
-
-## Installation / Test local
-
-1. Ouvrir le dossier `site/` dans VS Code.
-2. Servir `site/` avec un serveur local (Live Server, http-server, ou XAMPP). Par exemple avec Live Server : clic droit `Open with Live Server`.
-3. Ouvrir `http://127.0.0.1:5500` (ou l'URL affichée) dans le navigateur.
+- Post a listing: name, current campus, desired campus, phone number
+- Real-time listing updates
+- Filter by campus
+- Delete a listing (only by its owner)
+- Client-side anonymous authentication (UID stored in `ownerUid`)
+- Included Firestore rules to secure write operations
 
 ---
 
-## Configuration Firebase
+## Project structure
 
-Le site attend une configuration Firebase côté client. Trois options :
+- `site/`: site sources (HTML/CSS/JS)
+  - `index.html`: main page
+  - `config.example.js`: Firebase configuration example
+  - `config.js`: (optional, not committed) private configuration
+  - `firestore.rules`: recommended Firestore rules
 
-1. (Simple) Modifier le fallback dans `site/index.html` (déjà présent) pour contenir vos clés.
-2. (Recommandé pour GitHub Pages) Créer un fichier `config.js` local (non commité) contenant :
+---
+
+## Installation / Local testing
+
+1. Open the `site/` folder in VS Code.
+2. Serve `site/` with a local server (Live Server, http-server, or XAMPP). For example with Live Server: right click and choose `Open with Live Server`.
+3. Open `http://127.0.0.1:5500` (or the displayed URL) in your browser.
+
+---
+
+## Firebase configuration
+
+The site expects a client-side Firebase configuration. Three options:
+
+1. (Simple) Edit the fallback in `site/index.html` (already present) to include your keys.
+2. (Recommended for GitHub Pages) Create a local (not committed) `config.js` file containing:
 
 ```js
 // site/config.js
 window.firebaseConfig = {
-  apiKey: "VOS_CLES",
-  authDomain: "votre-projet.firebaseapp.com",
-  projectId: "votre-projet",
+  apiKey: "YOUR_KEYS",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project",
   storageBucket: "...",
   messagingSenderId: "...",
   appId: "...",
@@ -53,35 +53,36 @@ window.firebaseConfig = {
 };
 ```
 
-3. (Automatisé) Utiliser GitHub Actions pour injecter `config.js` au déploiement à partir de Secrets GitHub (voir section CI ci‑dessous).
+3. (Automated) Use GitHub Actions to inject `config.js` at deploy time from GitHub Secrets (see the CI section below).
 
-> Remarque : l'`apiKey` côté client est publique par design. La sécurité repose sur les règles Firestore / Auth / App Check.
-
----
-
-## Firestore Rules (recommandé)
-
-Le fichier `site/firestore.rules` contient un exemple de règles qui :
-- permettent la lecture publique,
-- exigent l'authentification pour `create`,
-- vérifient que `ownerUid == request.auth.uid`,
-- autorisent `update`/`delete` seulement au propriétaire.
-
-Pour activer : collez le contenu dans Firebase Console → Firestore → Rules ou déployez via `firebase deploy --only firestore:rules`.
+> Note: the client-side `apiKey` is public by design. Security relies on Firestore rules / Auth / App Check.
 
 ---
 
-## Authentification
+## Firestore Rules (recommended)
 
-Le client utilise Firebase Auth (anonyme) pour obtenir un `uid` et l'attacher au document `ownerUid`. Assurez-vous d'activer l'auth anonyme dans Firebase Console → Authentication → Sign-in method → Anonymous.
+The `site/firestore.rules` file contains an example ruleset that:
+
+- allows public reads,
+- requires authentication for `create`,
+- checks that `ownerUid == request.auth.uid`,
+- allows `update`/`delete` only for the owner.
+
+To enable: paste the content into Firebase Console → Firestore → Rules, or deploy via `firebase deploy --only firestore:rules`.
 
 ---
 
-## Déploiement (GitHub Pages + injection sécurisée de config)
+## Authentication
 
-Si vous ne voulez pas committer `config.js`, utilisez GitHub Actions pour générer `site/config.js` depuis les Secrets du repo et publier `site/` :
+The client uses Firebase Auth (anonymous) to obtain a `uid` and attach it to the `ownerUid` field. Make sure to enable Anonymous Auth in Firebase Console → Authentication → Sign-in method.
 
-Exemple de workflow (à placer dans `.github/workflows/deploy.yml`):
+---
+
+## Deployment (GitHub Pages + secure config injection)
+
+If you don't want to commit `config.js`, use GitHub Actions to generate `site/config.js` from repo secrets and publish `site/`.
+
+Example workflow (place it in `.github/workflows/deploy.yml`):
 
 ```yaml
 name: Build and deploy site
@@ -126,29 +127,29 @@ jobs:
           publish_dir: ./site
 ```
 
-Instructions : ajouter vos clés dans GitHub Secrets, committer le workflow et pousser sur `main`.
+Instructions: add your keys to GitHub Secrets, commit the workflow, and push to `main`.
 
 ---
 
-## Sécurité & bonnes pratiques
+## Security & best practices
 
-- Ne placez jamais de clés de service (service account) côté client.
-- Protégez les opérations sensibles via Firestore Rules ou un backend (Cloud Functions). 
-- Activez App Check (reCAPTCHA v3) pour réduire les abus automatisés si nécessaire.
-- Surveillez l'utilisation et configurez des alertes de budget.
-
----
-
-## Contribuer
-
-Fork, crée une branche, fais une PR. Pour les améliorations majeures (backend, modération), décris le plan et les impacts.
+- Never place service account keys on the client.
+- Protect sensitive operations using Firestore Rules or a backend (Cloud Functions).
+- Enable App Check (reCAPTCHA v3) to reduce automated abuse if needed.
+- Monitor usage and configure budget alerts.
 
 ---
 
-## Licence
+## Contributing
 
-Choisis une licence (par ex. MIT) et remplace cette section si besoin.
+Fork, create a branch, and open a PR. For major improvements (backend, moderation), describe the plan and impact.
 
 ---
 
-Pour toute aide (déploiement CI, règles, App Check), dis‑moi ce que tu veux que j'implémente et je le ferai.
+## License
+
+Choose a license (e.g., MIT) and replace this section if needed.
+
+---
+
+Need help (CI deployment, rules, App Check)? Tell me what you'd like me to implement and I will.
